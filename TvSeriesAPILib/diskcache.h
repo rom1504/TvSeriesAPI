@@ -6,6 +6,7 @@
 #include <QIODevice>
 #include <QObject>
 #include <QNetworkAccessManager>
+#include <functional>
 
 class DiskCache : public QObject
 {
