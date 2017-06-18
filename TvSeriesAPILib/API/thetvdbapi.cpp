@@ -154,12 +154,17 @@ void TheTvDBAPI::loadSeries(int id,QObject * parent,std::function<void(void)> al
 // make a function like this one to update the series : so series are displayed even if they have to be updated
 void TheTvDBAPI::loadSeries(Series* series,std::function<void(void)> almostLoaded,std::function<void(void)> loaded)
 {
-    mDiskCache->streamLocallyOrRemotely(mCachePath+"/"+QString::number(series->id())+currentTheTvDBLanguage()+".xml",QUrl(mServer+"/api/"+mAPIKey+"/series/"+QString::number(series->id())+"/all/"+currentTheTvDBLanguage()+".xml"),[series,this,loaded,almostLoaded](QIODevice* device)
+    mDiskCache->streamLocallyOrRemotely(mCachePath+"/"+QString::number(series->id())+currentTheTvDBLanguage()+".xml",
+                                        QUrl(mServer+"/api/"+mAPIKey+"/series/"+QString::number(series->id())+"/all/"+currentTheTvDBLanguage()+".xml"),
+                                        [series,this,loaded,almostLoaded](QIODevice* device)
     {
         QXmlStreamReader xml(device);
+
         QSet<QString> seriesWantedFields={"banner","SeriesName","Overview","FirstAired","Network"};
         QSet<QString> episodeWantedFields={"Combined_season","EpisodeNumber","EpisodeName","Overview","filename","FirstAired"};
         Season * currentSeason=nullptr;
+        qDebug()<<mCachePath+"/"+QString::number(series->id())+currentTheTvDBLanguage()+".xml";
+        qDebug()<<mServer+"/api/"+mAPIKey+"/series/"+QString::number(series->id())+"/all/"+currentTheTvDBLanguage()+".xml";
         while(!xml.atEnd())
         {
             xml.readNext();
@@ -182,11 +187,16 @@ void TheTvDBAPI::loadSeries(Series* series,std::function<void(void)> almostLoade
                 currentSeason=series->findSeason(seasonNumber.toInt());
                 if(currentSeason==nullptr)
                 {
-                    Q_ASSERT(seasonNumber!="");
+                    qDebug()<<mCachePath+"/"+QString::number(series->id())+currentTheTvDBLanguage()+".xml";
+                    qDebug()<<mServer+"/api/"+mAPIKey+"/series/"+QString::number(series->id())+"/all/"+currentTheTvDBLanguage()+".xml";
+                    Q_ASSERT_X(seasonNumber!="","loadSeries","season number empty");
                     currentSeason=new Season(seasonNumber.toInt(),series->banner(),nullptr,series);
                     series->addSeason(currentSeason);
                 }
-                currentSeason->addEpisode(new Episode(fields->value("EpisodeNumber").toInt(),fields->value("EpisodeName"),fields->value("Overview"),episodeBanner=="" ? currentSeason->banner() : new Image(episodeBanner,series),QDate::fromString(fields->value("FirstAired"),"yyyy-MM-dd"),currentSeason));
+                currentSeason->addEpisode(new Episode(fields->value("EpisodeNumber").toInt(),fields->value("EpisodeName"),
+                                                      fields->value("Overview"),episodeBanner=="" ? currentSeason->banner() :
+                                                                                                    new Image(episodeBanner,series),
+                                                      QDate::fromString(fields->value("FirstAired"),"yyyy-MM-dd"),currentSeason));
             }
         }
         device->close();
@@ -254,11 +264,13 @@ QMap<QString,QString>* TheTvDBAPI::getFields(QXmlStreamReader & xml,QString cont
 {
     if(!(xml.tokenType()==QXmlStreamReader::StartElement && xml.name()==containerElementName)) return nullptr;
     QMap<QString,QString>* fields=new QMap<QString,QString>;
-    while(!(xml.tokenType()==QXmlStreamReader::EndElement && xml.name()==containerElementName))
+    while(!xml.atEnd() && !(xml.tokenType()==QXmlStreamReader::EndElement && xml.name()==containerElementName))
     {
         xml.readNext();
         if(xml.tokenType()==QXmlStreamReader::StartElement && wantedFields.contains(xml.name().toString())) fields->insert(xml.name().toString(),xml.readElementText());
     }
+    if(xml.hasError())
+        return nullptr;
     return fields;
 }
 

@@ -96,6 +96,7 @@ Season* Series::findSeason(int seasonNumber)
 void Series::loadSeriesSeenFile()
 {
     QString fileName=dataPath+"/"+QString::number(mId)+"_seen.xml";
+    qDebug()<<"loading"<<fileName;
     QFile seriesSeenFile(fileName);
     if(seriesSeenFile.open(QIODevice::ReadOnly|QIODevice::Text))
     {
@@ -105,7 +106,9 @@ void Series::loadSeriesSeenFile()
         QXmlStreamReader xml(xmlFileContent);
         while(!xml.atEnd())
         {
+            //qDebug()<<"reading a bit of load series seen";
             xml.readNext();
+            //qDebug()<<"reading a bit of load series seen allo";
             if(xml.tokenType()==QXmlStreamReader::StartElement && xml.name()=="Season")
             {
                 QString seasonNumber=xml.attributes().value("number").toString();
@@ -114,6 +117,7 @@ void Series::loadSeriesSeenFile()
                 if(currentSeason==nullptr) {qDebug()<<"nonexistent season seen : series "+QString::number(mId)+" season "+seasonNumber;continue;}
                 while(!(xml.tokenType()==QXmlStreamReader::EndElement && xml.name()=="Season"))
                 {
+                    //qDebug()<<"reading a bit of load series seen Season";
                     xml.readNext();
                     if(xml.tokenType()==QXmlStreamReader::StartElement && xml.name()=="Episode")
                     {
@@ -129,6 +133,7 @@ void Series::loadSeriesSeenFile()
         }
     }
     else emit seenChanged();
+    qDebug()<<"done loading"<<fileName;
     connect(this,&Series::seenChanged,this,&Series::saveSeriesSeenFile);
 }
 
